@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# fip - find in path
+print-usage()
+{
+    printf "%s [-h|--help] [-u|-w|-p|-pu|-pw|-pww] [OPTIONS for GNU find exception \"path option\"]\n" \
+	"$(basename "$0")" >&2
+    printf "\t --help | -h: Show this help info.\n" >&2
+    printf "\t -u: Find files in Cygwin paths.\n" >&2
+    printf "\t -w: Find files in Windows paths.\n" >&2
+    printf "\t -p: Print paths.\n" >&2
+    printf "\t -pu: Print Cygwin paths.\n" >&2
+    printf "\t -pw: Print Windows paths in \"Cygwin format.\"\n" >&2
+    printf "\t -pww: Print Windows paths in \"Windows format.\"\n" >&2
+    printf "\t Default to find files in all the paths.\n" >&2
+}
+print-help()
+{
+    printf "%s - Find files in the paths defined in \"\$PATH\".\n\n" "$(basename "$0")" >&2
+    print-usage
+}
+
+print-path()
+{
+    if [[ "$1" == "u" ]]; then
+	awk -F ':' '{for (i=1; i<=NF; i++) if ($i !~ /^\/cygdrive\//) printf "%s\n",$i}' <<<"$PATH"
+    elif [[ "$1" == "w" ]]; then
+	awk -F ':' '{for (i=1; i<=NF; i++) if ($i ~ /^\/cygdrive\//) printf "%s\n",$i}' <<<"$PATH"
+    elif [[ "$1" == "ww" ]]; then
+	print-path w |while read p; do cygpath -w "$p"; done
+    else
+	awk -F ':' '{for (i=1; i<=NF; i++) printf "%s\n",$i}' <<<"$PATH"
+    fi
+}
+
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    print-help
+    exit 0
+elif [[ "$1" == "-u" ]]; then
+    path_type=cyg_path
+    shift
+elif [[ "$1" == "-w" ]]; then
+    path_type=win_path
+    shift
+elif [[ "$1" == "-p" ]]; then
+    print-path
+    exit 0
+elif [[ "$1" == "-pu" ]]; then
+    print-path u
+    exit 0
+elif [[ "$1" == "-pw" ]]; then
+    print-path w
+    exit 0
+elif [[ "$1" == "-pww" ]]; then
+    print-path ww
+    exit 0
+else
+    path_type=all
+fi
+
+# We do not expect any "path" option, which is no leading hyphen, to the find command,
+# + we expect an option instead which is starting with a '-'.
+if [[ $# -ne 0 ]] && [[ ! "$1" =~ ^-.+ ]]; then
+    printf "Invalid option: \"%s\"\n" "$1" >&2
+    print-usage
+    exit 1
+fi
+
+while read p; do
+    if [[ ! -d "$p" ]]; then
+	printf "Path \"%s\" dose not exist, skip.\n" "$p" >&2
+	continue
+    fi
+
+    case "$path_type" in
+	"cyg_path")
+	    if [[ ! "$p" =~ ^/cygdrive/ ]]; then
+		#echo "Find files in cygpath $p"
+	    	find "$p" "$@"
+	    fi
+	    ;;
+	"win_path")
+	    if [[ "$p" =~ ^/cygdrive/ ]]; then
+		#echo "Find files in winpath $p"
+	 	find "$p" "$@"
+	    fi
+	    ;;
+	"all")
+	    #echo "Find files in all path $p"
+	    find "$p" "$@"
+	    ;;
+    esac
+done < <(awk -F ':' '{for (i=1; i<=NF; i++) printf "%s\n",$i}' <<<"$PATH")

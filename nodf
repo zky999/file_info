@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+show_no_of_dirs_and_files()
+{
+    cd "$1" 2>/dev/null
+    if [[ $? -ne 0 ]]; then
+	printf "%-7s%-8s%-s\n" "ERROR" "ERROR" "$(cygpath -au "$1")" >&2
+	return 
+    fi
+    
+    f1d |while read d; do
+	cd "$d" 2>/dev/null
+	if [[ $? -eq 0 ]]; then
+	    printf "%-7s%-8s%-s\n" "$(f1d |wc -l |awk '{print $1}')" "$(f1f |wc -l |awk '{print $1}')" "$(pwd)"
+	    show_no_of_dirs_and_files .
+	    cd ..
+	else
+	    printf "%-7s%-8s%-s\n" "ERROR" "ERROR" "$(cygpath -au "$d")" >&2
+	    continue
+	fi
+    done
+}
+
+
+if [[ -d "$1" ]]; then
+    wd="$1"
+else
+    wd=.
+fi
+
+printf "%-7s%-8s%-s\n" "NOD" "NOF" "PATH"
+show_no_of_dirs_and_files "$wd"

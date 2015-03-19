@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+wd=.
+[[ -d "$1" ]] && wd="$1"
+find "$wd" -maxdepth 1 -mindepth 1 -type d
