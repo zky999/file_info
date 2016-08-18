@@ -22,15 +22,17 @@ print-help()
 print-path()
 {
     if [[ "$1" == "u" ]]; then
-	awk -F ':' '{for (i=1; i<=NF; i++) if ($i !~ /^\/cygdrive\//) printf "%s\n",$i}' <<<"$PATH"
+	grep -v -e '^\/cygdrive\/' -e '^$' <<<"${uniq_paths}"
     elif [[ "$1" == "w" ]]; then
-	awk -F ':' '{for (i=1; i<=NF; i++) if ($i ~ /^\/cygdrive\//) printf "%s\n",$i}' <<<"$PATH"
+	grep '^\/cygdrive\/' <<<"${uniq_paths}"
     elif [[ "$1" == "ww" ]]; then
 	print-path w |while read p; do cygpath -w "$p"; done
     else
-	awk -F ':' '{for (i=1; i<=NF; i++) printf "%s\n",$i}' <<<"$PATH"
+	grep -v '^$' <<<"${uniq_paths}"
     fi
 }
+
+uniq_paths="$(tr ':' '\n' <<<"$PATH" |sort -fu)"
 
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
     print-help
@@ -75,18 +77,18 @@ while read p; do
 	"cyg_path")
 	    if [[ ! "$p" =~ ^/cygdrive/ ]]; then
 		#echo "Find files in cygpath $p"
-	    	find "$p" "$@"
+	    	[[ -n "$p" ]] && find "$p" "$@"
 	    fi
 	    ;;
 	"win_path")
 	    if [[ "$p" =~ ^/cygdrive/ ]]; then
 		#echo "Find files in winpath $p"
-	 	find "$p" "$@"
+	 	[[ -n "$p" ]] && find "$p" "$@"
 	    fi
 	    ;;
 	"all")
 	    #echo "Find files in all path $p"
-	    find "$p" "$@"
+	    [[ -n "$p" ]] && find "$p" "$@"
 	    ;;
     esac
-done < <(awk -F ':' '{for (i=1; i<=NF; i++) printf "%s\n",$i}' <<<"$PATH")
+done <<<"${uniq_paths}"
