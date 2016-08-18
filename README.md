@@ -14,10 +14,10 @@ find all one level files of a folder
 print the file URI protocol of a file
 
 ## findinpath
-GNU find utilities warpper for finding files in \$PATH (in C)
+GNU find utilities warpper for finding files in $PATH (in C)
 
 ## fip
-GNU find utilities warpper for finding files in \$PATH (in bash)
+GNU find utilities warpper for finding files in $PATH (in bash)
 
 ## l
 ls shortcut for 'ls -alhF'
